@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-means 데이터 분석기</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .control-panel { margin-bottom: 20px; padding: 20px; background: #eef2f5; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="file"], input[type="number"] { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; background-color: #4CAF50; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #45a049; }
+        .result-section { text-align: center; margin-top: 30px; }
+        .result-img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; }
+        .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>K-means 클러스터링 도구</h1>
+
+        {% if error_msg %}
+        <div class="error">⚠️ 오류 발생: {{ error_msg }}</div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" class="control-panel">
+            <div class="form-group">
+                <label for="file">1. CSV 데이터 파일 선택:</label>
+                <input type="file" name="file" id="file" accept=".csv" required>
+                <small style="color: gray;">* 숫자형 컬럼이 2개 이상 포함되어야 합니다.</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="k_value">2. 클러스터 개수 (K) 설정:</label>
+                <input type="number" name="k_value" id="k_value" min="2" max="10" value="3" required>
+            </div>
+
+            <button type="submit">분석 및 시각화 실행</button>
+        </form>
+        
+        {% if plot_url %}
+        <div class="result-section">
+            <h2>분석 결과</h2>
+
+            <img src="data:image/png;base64,{{ plot_url }}" alt="Clustering Result" class="result-img">
+            <p>데이터가 지정한 K개 그룹으로 분류되었습니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
