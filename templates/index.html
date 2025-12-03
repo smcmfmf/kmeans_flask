@@ -3,469 +3,493 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-means 데이터 분석기</title>
+    <title>K-means Insight | 데이터 분석 솔루션</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --background-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2b2d42;
+            --text-sub: #8d99ae;
+            --border-color: #e9ecef;
+            --success-color: #4cc9f0;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #ffffff;
-            color: #1a1a1a;
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background-bg);
+            color: var(--text-main);
             line-height: 1.6;
-        }
-
-        .nav {
-            background: #000000;
-            padding: 16px 0;
-            border-bottom: 1px solid #e5e5e5;
-        }
-
-        .nav-content {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-
-        .nav h1 {
-            color: #ffffff;
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 48px 24px;
-        }
-
-        .page-title {
-            font-size: 42px;
-            font-weight: 700;
-            color: #000000;
-            margin-bottom: 12px;
-            letter-spacing: -1px;
-        }
-
-        .page-subtitle {
-            font-size: 18px;
-            color: #5a5a5a;
-            margin-bottom: 48px;
-        }
-
-        .error {
-            background: #fff5f5;
-            border-left: 4px solid #e53e3e;
-            padding: 16px 20px;
-            margin-bottom: 32px;
-            color: #c53030;
-            font-size: 15px;
-        }
-
-        .control-panel {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 8px;
-            padding: 32px;
-            margin-bottom: 48px;
-        }
-
-        .form-group {
-            margin-bottom: 32px;
-            padding-bottom: 32px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .form-group:last-of-type {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        .form-col {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        .form-label {
-            font-size: 16px;
-            font-weight: 600;
-            color: #000000;
-            margin-bottom: 16px;
-            display: block;
-            transition: opacity 0.3s;
+        .navbar {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .form-label.hidden-label {
-            display: none;
+        .navbar-content {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .form-description {
-            font-size: 14px;
-            color: #5a5a5a;
-            margin-bottom: 16px;
-            transition: opacity 0.3s;
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            letter-spacing: -0.5px;
         }
 
-        .form-description.hidden-label {
-            display: none;
+        .logo i { margin-right: 8px; }
+
+        .container {
+            flex: 1;
+            width: 100%;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
         }
 
-        .file-input-wrapper {
+        .header-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        .header-subtitle {
+            color: var(--text-sub);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            padding: 40px;
+            margin-bottom: 30px;
+            transition: transform 0.2s ease;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
             position: relative;
         }
 
-        .file-input-wrapper input[type="file"] {
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: #f0f4ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-weight: 500;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            margin-top: 5px;
+        }
+
+        input[type="file"] {
             position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
             opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .file-input-label {
-            display: block;
-            padding: 32px;
-            background: #fafafa;
-            border: 2px dashed #d1d1d1;
-            border-radius: 6px;
-            text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
-            color: #5a5a5a;
-            font-size: 15px;
         }
 
-        .file-input-label:hover {
-            background: #f5f5f5;
-            border-color: #000000;
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 30px;
         }
 
-        #preview-area {
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .form-group label i { margin-right: 6px; color: var(--primary-color); }
+
+        .custom-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #fff;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .custom-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 30px;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.4);
+        }
+
+        .btn-reset {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            margin-top: 15px;
+        }
+        
+        .btn-reset:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+
+        .result-image-container {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+        }
+
+        .result-image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .result-badges {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            background: #eef2ff;
+            color: var(--primary-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .preview-wrapper {
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
             display: none;
         }
 
-        .preview-label {
-            font-size: 14px;
+        .preview-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            font-size: 0.9rem;
             font-weight: 600;
-            color: #000000;
-            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
-            border: 1px solid #e5e5e5;
+            font-size: 0.9rem;
         }
 
         th, td {
-            padding: 12px 16px;
+            padding: 12px 15px;
             text-align: left;
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
         }
 
-        th {
-            background: #fafafa;
-            font-weight: 600;
-            color: #000000;
-        }
+        th { background: #fff; font-weight: 600; color: var(--text-main); }
+        tr:last-child td { border-bottom: none; }
 
-        td {
-            background: #ffffff;
-            color: #1a1a1a;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        .select-wrapper {
-            position: relative;
-        }
-
-        select {
-            width: 100%;
-            padding: 14px 40px 14px 16px;
-            border: 2px solid #e5e5e5;
-            border-radius: 6px;
-            font-size: 15px;
-            background: #ffffff;
-            cursor: pointer;
-            transition: all 0.2s;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #000000;
-        }
-
-        select:hover {
-            border-color: #000000;
-        }
-
-        .select-wrapper::after {
-            content: '▼';
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-            font-size: 12px;
-            color: #5a5a5a;
-        }
-
-        input[type="number"] {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #e5e5e5;
-            border-radius: 6px;
-            font-size: 16px;
-            transition: all 0.2s;
-            background: #ffffff;
-        }
-
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #000000;
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 16px;
-            background: #000000;
-            color: #ffffff;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 8px;
-        }
-
-        .submit-btn:hover {
-            background: #1a1a1a;
-        }
-
-        .submit-btn:active {
-            transform: scale(0.98);
-        }
-
-        .reset-btn {
-            width: 100%;
-            padding: 16px;
-            background: #ffffff;
-            color: #000000;
-            border: 2px solid #e5e5e5;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 24px;
-        }
-
-        .reset-btn:hover {
-            background: #fafafa;
-            border-color: #000000;
-        }
-
-        .result-section {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 8px;
-            padding: 32px;
-        }
-
-        .result-section h2 {
-            font-size: 32px;
-            font-weight: 700;
-            color: #000000;
-            margin-bottom: 24px;
-            letter-spacing: -0.5px;
-        }
-
-        .result-img {
-            max-width: 100%;
-            border: 1px solid #e5e5e5;
-            border-radius: 6px;
-            margin-bottom: 24px;
-        }
-
-        .result-info {
-            background: #fafafa;
-            padding: 20px 24px;
-            border-radius: 6px;
-            border: 1px solid #e5e5e5;
-            margin-bottom: 24px;
-            max-width: 600px;
-        }
-
-        .result-info {
-            background: #fafafa;
-            padding: 20px 24px;
-            border-radius: 6px;
-            border: 1px solid #e5e5e5;
-            margin: 0 auto 24px auto;
-            max-width: 600px;
-        }
-
-
-        .result-info strong {
-            font-weight: 600;
-            color: #000000;
-        }
-
-        .hidden {
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9);
+            z-index: 1000;
             display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px 20px;
+            background-color: #fee2e2;
+            color: #ef4444;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         @media (max-width: 768px) {
-            .page-title {
-                font-size: 32px;
-            }
-
-            .container {
-                padding: 32px 16px;
-            }
-
-            .control-panel, .result-section {
-                padding: 24px;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-                gap: 0;
-            }
-
-            .form-col {
-                margin-bottom: 32px;
-                padding-bottom: 32px;
-                border-bottom: 1px solid #f0f0f0;
-            }
-
-            .form-col:last-child {
-                margin-bottom: 0;
-                padding-bottom: 0;
-                border-bottom: none;
-            }
+            .options-grid { grid-template-columns: 1fr; }
+            .header-title { font-size: 2rem; }
+            .card { padding: 25px; }
         }
     </style>
 </head>
 <body>
-    <nav class="nav">
-        <div class="nav-content">
-            <h1>DATA ANALYZER</h1>
+
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <i class="fa-solid fa-chart-pie"></i> Data Insight
+            </div>
         </div>
     </nav>
 
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p style="font-weight: 600; color: var(--text-main);">데이터 분석 중입니다...</p>
+    </div>
+
     <div class="container">
-        <h1 class="page-title">K-means 클러스터 분석</h1>
-        <p class="page-subtitle">CSV 데이터를 업로드하고 머신러닝 기반 클러스터링을 수행하세요</p>
+        <div class="header-section">
+            <h1 class="header-title">K-means Clustering</h1>
+            <p class="header-subtitle">복잡한 데이터를 머신러닝으로 분석하고 시각화하세요</p>
+        </div>
 
         {% if error_msg %}
-        <div class="error">
+        <div class="alert">
+            <i class="fa-solid fa-circle-exclamation"></i>
             {{ error_msg }}
         </div>
         {% endif %}
 
         {% if plot_url %}
-        <div class="result-section">
-            <h2>분석 결과</h2>
-            <img src="data:image/png;base64,{{ plot_url }}" alt="Clustering Result" class="result-img">
-            <div class="result-info">
-                <p>
-                    <strong>분석 방식:</strong> {{ method_text }}<br>
-                    <strong>클러스터 수:</strong> 데이터가 {{ k_value }}개 그룹으로 분류되었습니다
-                </p>
-            </div>
-            <button type="button" class="reset-btn" onclick="location.href='/'">새로운 분석 시작</button>
-        </div>
-        {% else %}
-        <form method="POST" enctype="multipart/form-data" class="control-panel" id="analysisForm">
-            <div class="form-group">
-                <label class="form-label" id="uploadLabel">데이터 업로드</label>
-                <p class="form-description" id="uploadDescription">분석할 CSV 파일을 선택하세요. 업로드 후 상위 5개 행을 미리 확인할 수 있습니다.</p>
-                
-                <div class="file-input-wrapper" id="fileInputWrapper">
-                    <input type="file" name="file" id="file" accept=".csv" required>
-                    <label for="file" class="file-input-label" id="fileLabel">
-                        <span id="fileLabelText">파일 선택</span>
-                    </label>
+        <div class="card result-section">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 10px;">분석 완료</h2>
+                <div class="result-badges">
+                    <span class="badge"><i class="fa-solid fa-layer-group"></i> {{ k_value }}개 그룹</span>
+                    <span class="badge"><i class="fa-solid fa-wrench"></i> 
+                        {% if 'pca' in method_text.lower() %} PCA 분석 {% else %} 표준화 분석 {% endif %}
+                    </span>
                 </div>
-                
-                <div id="previewArea">
-                    <div class="preview-label">데이터 미리보기</div>
-                    <table id="previewTable"></table>
+            </div>
+
+            <div class="result-image-container">
+                <img src="data:image/png;base64,{{ plot_url }}" alt="Clustering Result">
+            </div>
+
+            <p style="text-align: center; color: var(--text-sub); margin-top: 10px;">
+                {{ method_text }}
+            </p>
+
+            <button type="button" class="btn-submit btn-reset" onclick="location.href='/'">
+                <i class="fa-solid fa-rotate-right"></i> 새로운 데이터 분석하기
+            </button>
+        </div>
+
+        {% else %}
+        <form method="POST" enctype="multipart/form-data" class="card" id="analysisForm">
+            
+            <div class="form-group">
+                <label>데이터 업로드 (CSV)</label>
+                <div class="upload-area" id="dropZone">
+                    <input type="file" name="file" id="file" accept=".csv" required>
+                    <div class="upload-icon">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <p class="upload-text" id="fileName">클릭하여 파일을 선택하거나 이곳으로 드래그하세요</p>
+                    <p class="upload-subtext">.csv 파일만 지원합니다 (최대 50MB)</p>
+                </div>
+
+                <div class="preview-wrapper" id="previewWrapper">
+                    <div class="preview-header">
+                        <span><i class="fa-solid fa-table"></i> 데이터 미리보기 (상위 5행)</span>
+                        <span style="font-size: 0.8rem; color: #666;" id="fileSizeTag"></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="previewTable"></table>
+                    </div>
                 </div>
             </div>
             
-            <div class="form-row">
-                <div class="form-col">
-                    <label class="form-label">분석 방법</label>
-                    <p class="form-description">데이터 전처리 방식을 선택하세요.</p>
-                    
-                    <div class="select-wrapper">
-                        <select name="method" id="method">
-                            <option value="std">표준화 - 모든 특성을 균등하게 반영</option>
-                            <option value="pca">PCA 차원축소 - 주성분으로 압축하여 분석</option>
-                        </select>
-                    </div>
+            <div class="options-grid">
+                <div class="form-group">
+                    <label for="method"><i class="fa-solid fa-sliders"></i> 전처리 방식</label>
+                    <select name="method" id="method" class="custom-input">
+                        <option value="std">표준화 (StandardScaler)</option>
+                        <option value="pca">PCA 차원 축소 (2D)</option>
+                    </select>
                 </div>
 
-                <div class="form-col">
-                    <label class="form-label">클러스터 개수</label>
-                    <p class="form-description">데이터를 몇 개의 그룹으로 분류할지 선택하세요 (2-10).</p>
-                    <input type="number" name="k_value" id="k_value" min="2" max="10" value="3" required>
+                <div class="form-group">
+                    <label for="k_value"><i class="fa-solid fa-object-group"></i> 클러스터 수 (K)</label>
+                    <input type="number" name="k_value" id="k_value" min="2" max="10" value="3" class="custom-input" required>
                 </div>
             </div>
 
-            <button type="submit" class="submit-btn">분석 시작</button>
+            <button type="submit" class="btn-submit">
+                <i class="fa-solid fa-microchip"></i> 분석 실행
+            </button>
         </form>
         {% endif %}
     </div>
 
     <script>
         const fileInput = document.getElementById('file');
-        const fileInputWrapper = document.getElementById('fileInputWrapper');
-        const previewArea = document.getElementById('previewArea');
+        const dropZone = document.getElementById('dropZone');
+        const fileNameDisplay = document.getElementById('fileName');
+        const previewWrapper = document.getElementById('previewWrapper');
         const previewTable = document.getElementById('previewTable');
-        const uploadLabel = document.getElementById('uploadLabel');
-        const uploadDescription = document.getElementById('uploadDescription');
-        const fileLabel = document.getElementById('fileLabel');
+        const form = document.getElementById('analysisForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
 
-        fileInput.addEventListener('change', async function(e) {
+        if(fileInput) {
+            fileInput.addEventListener('change', handleFileSelect);
+        }
+
+        if(dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight(e) { dropZone.classList.add('dragover'); }
+            function unhighlight(e) { dropZone.classList.remove('dragover'); }
+
+            dropZone.addEventListener('drop', handleDrop, false);
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            handleFileSelect({ target: { files: files } });
+        }
+
+        async function handleFileSelect(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            if (file.size > 1024 * 1024) {
-                previewTable.innerHTML = "<tr><td>파일이 커서 미리보기를 생략합니다.</td></tr>";
-                previewArea.style.display = 'block';
-                fileLabel.style.display = 'none';
-                uploadLabel.classList.add('hidden-label');
-                uploadDescription.classList.add('hidden-label');
-                return;
-            }
+            fileNameDisplay.innerHTML = `<strong>${file.name}</strong>`;
+            fileNameDisplay.style.color = 'var(--primary-color)';
 
             const reader = new FileReader();
+            
             reader.onload = function(evt) {
-                const text = evt.target.result;
-                const rows = text.split('\n');
-                previewTable.innerHTML = '';
+                const buffer = evt.target.result;
+                let text;
 
+                try {
+                    const decoder = new TextDecoder('utf-8', { fatal: true });
+                    text = decoder.decode(buffer);
+                } catch(e) {
+                    const decoder = new TextDecoder('euc-kr');
+                    text = decoder.decode(buffer);
+                }
+
+                const rows = text.split('\n');
+                
+                previewTable.innerHTML = '';
                 const limit = Math.min(rows.length, 6);
+                
                 for (let i = 0; i < limit; i++) {
                     const row = rows[i].trim();
                     if (row) {
@@ -480,14 +504,17 @@
                         previewTable.appendChild(tr);
                     }
                 }
-
-                previewArea.style.display = 'block';
-                fileLabel.style.display = 'none';
-                uploadLabel.classList.add('hidden-label');
-                uploadDescription.classList.add('hidden-label');
+                previewWrapper.style.display = 'block';
             };
-            reader.readAsText(file, 'UTF-8');
-        });
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        if(form) {
+            form.addEventListener('submit', function() {
+                loadingOverlay.style.display = 'flex';
+            });
+        }
     </script>
 </body>
 </html>
