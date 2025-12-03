@@ -5,23 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>K-means 데이터 분석기</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
+        body { font-family: 'Malgun Gothic', sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
         .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h1 { color: #333; text-align: center; }
-        .control-panel { margin-bottom: 20px; padding: 20px; background: #eef2f5; border-radius: 8px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="file"], input[type="number"] { width: 100%; padding: 8px; box-sizing: border-box; }
-        button { width: 100%; background-color: #4CAF50; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #45a049; }
-        .result-section { text-align: center; margin-top: 30px; }
-        .result-img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; }
-        .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+        .control-panel { padding: 20px; background: #eef2f5; border-radius: 8px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+        input[type="file"], input[type="number"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background: #fff; }
+        
+        /* 라디오 버튼 스타일 */
+        .radio-group { display: flex; gap: 20px; background: white; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
+        .radio-item { display: flex; align-items: center; }
+        .radio-item input { margin-right: 8px; width: auto; }
+        
+        button { width: 100%; background-color: #2196F3; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px;}
+        button:hover { background-color: #1976D2; }
+
+        /* 미리보기 테이블 스타일 */
+        #preview-area { margin-top: 10px; overflow-x: auto; display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.9em; background: white; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .preview-label { font-size: 0.9em; color: #666; margin-bottom: 5px; }
+
+        .result-section { text-align: center; margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 20px; }
+        .result-img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+        .error { color: #d32f2f; background: #ffcdd2; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>K-means 클러스터링 도구</h1>
+        <h1>📊 Advanced K-means 분석기</h1>
 
         {% if error_msg %}
         <div class="error">⚠️ 오류 발생: {{ error_msg }}</div>
@@ -29,27 +43,86 @@
 
         <form method="POST" enctype="multipart/form-data" class="control-panel">
             <div class="form-group">
-                <label for="file">1. CSV 데이터 파일 선택:</label>
+                <label for="file">1. CSV 파일 업로드 (상위 5행 미리보기):</label>
                 <input type="file" name="file" id="file" accept=".csv" required>
-                <small style="color: gray;">* 숫자형 컬럼이 2개 이상 포함되어야 합니다.</small>
+                
+                <div id="preview-area">
+                    <div class="preview-label">📄 데이터 미리보기 (상위 5개 행):</div>
+                    <table id="preview-table"></table>
+                </div>
             </div>
             
             <div class="form-group">
-                <label for="k_value">2. 클러스터 개수 (K) 설정:</label>
+                <label>2. 분석(전처리) 방법 선택:</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="method_std" name="method" value="std" checked>
+                        <label for="method_std" style="margin:0; font-weight:normal;">표준화 (모든 특성 반영)</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="method_pca" name="method" value="pca">
+                        <label for="method_pca" style="margin:0; font-weight:normal;">PCA (주성분 압축)</label>
+                    </div>
+                </div>
+                <small style="color: gray; display:block; margin-top:5px;">
+                    * <strong>표준화:</strong> 있는 그대로의 데이터를 정규화하여 분석합니다.<br>
+                    * <strong>PCA:</strong> 데이터를 2개의 핵심 축으로 압축하여 분석합니다 (노이즈 제거 효과).
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="k_value">3. 클러스터 개수 (K):</label>
                 <input type="number" name="k_value" id="k_value" min="2" max="10" value="3" required>
             </div>
 
-            <button type="submit">분석 및 시각화 실행</button>
+            <button type="submit">분석 시작</button>
         </form>
         
         {% if plot_url %}
         <div class="result-section">
-            <h2>분석 결과</h2>
-
+            <h2>📈 분석 결과</h2>
             <img src="data:image/png;base64,{{ plot_url }}" alt="Clustering Result" class="result-img">
-            <p>데이터가 지정한 K개 그룹으로 분류되었습니다.</p>
+            <p>
+                선택한 방식: <strong>{{ method_text }}</strong><br>
+                데이터가 <strong>{{ k_value }}</strong>개 그룹으로 분류되었습니다.
+            </p>
         </div>
         {% endif %}
     </div>
+
+    <script>
+        document.getElementById('file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n');
+                const table = document.getElementById('preview-table');
+                table.innerHTML = '';
+
+                const limit = Math.min(rows.length, 6);
+                
+                for (let i = 0; i < limit; i++) {
+                    const row = rows[i].trim();
+                    if (row) {
+                        const tr = document.createElement('tr');
+                        const cells = row.split(',');
+                        
+                        cells.forEach(cell => {
+                            const el = i === 0 ? 'th' : 'td';
+                            const td = document.createElement(el);
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+                        table.appendChild(tr);
+                    }
+                }
+                document.getElementById('preview-area').style.display = 'block';
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
+    </script>
 </body>
 </html>

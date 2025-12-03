@@ -1,75 +1,102 @@
-import matplotlib
-matplotlib.use('Agg')  # 서버 환경에서 그래프 그리기 위해 필요
-
 from flask import Flask, render_template, request
 import pandas as pd
 import numpy as np
-from sklearn.cluster import KMeans
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 import io
 import base64
 
 app = Flask(__name__)
 
+plt.rcParams['axes.unicode_minus'] = False
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     plot_url = None
     error_msg = None
+    method_text = ""
+    k_value = 3
     
     if request.method == 'POST':
         try:
-            # 1. 파일 및 K값 가져오기
+            if 'file' not in request.files:
+                return render_template('index.html', error_msg="No file uploaded.")
             file = request.files['file']
-            k_value = int(request.form.get('k_value', 3)) # 기본값 3
-            
-            if not file:
-                raise ValueError("파일이 업로드되지 않았습니다.")
+            if file.filename == '':
+                return render_template('index.html', error_msg="Please select a file.")
 
-            # 2. 데이터 읽기 (CSV)
-            df = pd.read_csv(file)
-            
-            # 3. 데이터 전처리
-            # 시각화를 위해 숫자형 데이터만 선택하고, 결측치는 0으로 채움
+            k_value = int(request.form.get('k_value', 3))
+            method = request.form.get('method', 'std')
+
+            try:
+                df = pd.read_csv(file)
+            except Exception:
+                return render_template('index.html', error_msg="Cannot read CSV file.")
+
             df_numeric = df.select_dtypes(include=[np.number]).fillna(0)
-            
-            # 2차원 평면 그래프를 그리기 위해 앞에서 2개의 컬럼만 사용
+
             if df_numeric.shape[1] < 2:
-                raise ValueError("숫자형 데이터 컬럼이 최소 2개 이상 필요합니다.")
+                return render_template('index.html', error_msg="Need at least 2 numeric columns.")
+
+            scaler = StandardScaler()
+            scaled_features = scaler.fit_transform(df_numeric)
+
+            graph_title = ""
+            
+            if method == 'pca':
+                pca = PCA(n_components=2)
+                pca_data = pca.fit_transform(scaled_features)
                 
-            X = df_numeric.iloc[:, :2].values # 첫 번째, 두 번째 컬럼만 사용
-            feature_names = df_numeric.columns[:2] # 축 이름용
+                cluster_data = pca_data
+                plot_data = pca_data
+                
+                method_text = "PCA 차원축소 후 클러스터링"
+                
+                graph_title = "K-means Clustering (PCA Reduction)"
+                x_label, y_label = "PCA Component 1", "PCA Component 2"
+                
+            else:
+                cluster_data = scaled_features
+                
+                if scaled_features.shape[1] > 2:
+                    pca = PCA(n_components=2)
+                    plot_data = pca.fit_transform(scaled_features)
+                    x_label, y_label = "PCA Component 1 (Vis)", "PCA Component 2 (Vis)"
+                else:
+                    plot_data = scaled_features
+                    x_label, y_label = df_numeric.columns[0], df_numeric.columns[1]
+                
+                method_text = "표준화된 전체 데이터 클러스터링"
+                
+                graph_title = "K-means Clustering (Standardized Data)"
 
-            # 4. K-means 클러스터링 수행
             kmeans = KMeans(n_clusters=k_value, random_state=42)
-            labels = kmeans.fit_predict(X)
-            centers = kmeans.cluster_centers_
+            clusters = kmeans.fit_predict(cluster_data)
 
-            # 5. 그래프 그리기 (Matplotlib)
-            fig, ax = plt.subplots(figsize=(10, 6))
+            plt.figure(figsize=(10, 6))
+            scatter = plt.scatter(plot_data[:, 0], plot_data[:, 1], c=clusters, cmap='viridis', s=50, alpha=0.8)
             
-            # 데이터 포인트 산점도
-            scatter = ax.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', s=50, alpha=0.6)
-            
-            # 중심점(Centroids) 표시
-            ax.scatter(centers[:, 0], centers[:, 1], c='red', s=200, marker='X', label='Centroids')
-            
-            ax.set_title(f'K-means Clustering Result (K={k_value})')
-            ax.set_xlabel(feature_names[0])
-            ax.set_ylabel(feature_names[1])
-            ax.legend()
-            ax.grid(True, alpha=0.3)
+            plt.title(f'{graph_title} (K={k_value})', fontsize=14)
+            plt.xlabel(x_label, fontsize=11)
+            plt.ylabel(y_label, fontsize=11)
+            plt.colorbar(scatter, label='Cluster ID')
+            plt.grid(True, linestyle='--', alpha=0.5)
 
-            # 6. 이미지를 메모리 버퍼에 저장 후 Base64로 인코딩
             img = io.BytesIO()
             plt.savefig(img, format='png', bbox_inches='tight')
             img.seek(0)
             plot_url = base64.b64encode(img.getvalue()).decode()
-            plt.close() # 메모리 해제
+            plt.close()
 
         except Exception as e:
-            error_msg = str(e)
+            error_msg = f"Error: {str(e)}"
 
-    return render_template('index.html', plot_url=plot_url, error_msg=error_msg)
+    return render_template('index.html', plot_url=plot_url, error_msg=error_msg, 
+                           method_text=method_text, k_value=k_value)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
