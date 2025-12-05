@@ -72,7 +72,7 @@
 
         .header-section {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 10px;
         }
 
         .header-title {
@@ -92,14 +92,14 @@
             border-radius: 16px;
             box-shadow: var(--shadow-md);
             padding: 40px;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             transition: transform 0.2s ease;
         }
 
         .upload-area {
             border: 2px dashed var(--border-color);
             border-radius: 12px;
-            padding: 40px 20px;
+            padding: 10px 5px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -184,7 +184,7 @@
             font-size: 1.1rem;
             font-weight: 700;
             cursor: pointer;
-            margin-top: 30px;
+            margin-top: 10px;
             box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
             transition: transform 0.2s, box-shadow 0.2s;
         }
@@ -198,7 +198,7 @@
             background: white;
             color: var(--text-main);
             border: 1px solid var(--border-color);
-            margin-top: 15px;
+            margin-top: 10px;
         }
         
         .btn-reset:hover {
@@ -224,7 +224,7 @@
             display: flex;
             gap: 10px;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .badge {
@@ -234,6 +234,40 @@
             border-radius: 20px;
             font-size: 0.9rem;
             font-weight: 600;
+        }
+
+        .cluster-stats-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin: 10px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            text-align: center;
+            min-width: 120px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary-color);
         }
 
         .preview-wrapper {
@@ -364,6 +398,17 @@
                 <img src="data:image/png;base64,{{ plot_url }}" alt="Clustering Result">
             </div>
 
+            {% if cluster_counts %}
+            <div class="cluster-stats-grid">
+                {% for label, count in cluster_counts %}
+                <div class="stat-card">
+                    <div class="stat-label">Cluster {{ label }}</div>
+                    <div class="stat-value">{{ count }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <p style="text-align: center; color: var(--text-sub); margin-top: 10px;">
                 {{ method_text }}
             </p>
@@ -400,16 +445,24 @@
             
             <div class="options-grid">
                 <div class="form-group">
-                    <label for="method"><i class="fa-solid fa-sliders"></i> 전처리 방식</label>
-                    <select name="method" id="method" class="custom-input">
-                        <option value="std">표준화 (StandardScaler)</option>
-                        <option value="pca">PCA 차원 축소 (2D)</option>
+                    <label for="k_value"><i class="fa-solid fa-object-group"></i> 클러스터 수 (K)</label>
+                    <input type="number" name="k_value" id="k_value" min="2" max="10" value="3" class="custom-input" required>
+                </div>
+                
+                <div></div>
+
+                <div class="form-group">
+                    <label for="x_col"><i class="fa-solid fa-arrows-left-right"></i> X축 컬럼 (시각화)</label>
+                    <select name="x_col" id="x_col" class="custom-input">
+                        <option value="">자동 (PCA 또는 기본값)</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="k_value"><i class="fa-solid fa-object-group"></i> 클러스터 수 (K)</label>
-                    <input type="number" name="k_value" id="k_value" min="2" max="10" value="3" class="custom-input" required>
+                    <label for="y_col"><i class="fa-solid fa-arrows-up-down"></i> Y축 컬럼 (시각화)</label>
+                    <select name="y_col" id="y_col" class="custom-input">
+                        <option value="">자동 (PCA 또는 기본값)</option>
+                    </select>
                 </div>
             </div>
 
@@ -428,6 +481,9 @@
         const previewTable = document.getElementById('previewTable');
         const form = document.getElementById('analysisForm');
         const loadingOverlay = document.getElementById('loadingOverlay');
+
+        const xSelect = document.getElementById('x_col');
+        const ySelect = document.getElementById('y_col');
 
         if(fileInput) {
             fileInput.addEventListener('change', handleFileSelect);
@@ -487,6 +543,32 @@
 
                 const rows = text.split('\n');
                 
+                if (rows.length > 0) {
+                    const headerRow = rows[0].trim();
+                    if(headerRow) {
+                        const headers = headerRow.split(',');
+                        
+                        const defaultOpt = '<option value="">자동 (PCA 또는 기본값)</option>';
+                        xSelect.innerHTML = defaultOpt;
+                        ySelect.innerHTML = defaultOpt;
+
+                        headers.forEach(h => {
+                            const colName = h.trim();
+                            if(colName) {
+                                const optX = document.createElement('option');
+                                optX.value = colName;
+                                optX.textContent = colName;
+                                xSelect.appendChild(optX);
+
+                                const optY = document.createElement('option');
+                                optY.value = colName;
+                                optY.textContent = colName;
+                                ySelect.appendChild(optY);
+                            }
+                        });
+                    }
+                }
+
                 previewTable.innerHTML = '';
                 const limit = Math.min(rows.length, 6);
                 

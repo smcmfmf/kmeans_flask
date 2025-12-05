@@ -54,6 +54,7 @@ def index():
     error_msg = None
     method_text = ""
     k_value = 3
+    cluster_counts = []
 
     if request.method == 'POST':
         try:
@@ -94,52 +95,75 @@ def index():
                 return render_template('index.html', error_msg="Need at least 2 numeric columns.")
 
             if df_numeric.shape[0] > 100000:
-                df_numeric = df_numeric.sample(100000, random_state=42)
+                df = df.sample(100000, random_state=42)
+                df_numeric = df.select_dtypes(include=[np.number]).fillna(0)
 
             scaler = StandardScaler()
             scaled_features = scaler.fit_transform(df_numeric)
 
-            graph_title = ""
-
-            method = request.form.get('method', 'std')
             k_value = int(request.form.get('k_value', 3))
+            x_col = request.form.get('x_col')
+            y_col = request.form.get('y_col')
 
-            if method == 'pca':
-                pca = PCA(n_components=2)
-                pca_data = pca.fit_transform(scaled_features)
+            pca = PCA(n_components=2)
+            cluster_data = pca.fit_transform(scaled_features)
 
-                cluster_data = pca_data
-                plot_data = pca_data
+            default_plot_x = cluster_data[:, 0]
+            default_plot_y = cluster_data[:, 1]
+            default_x_label = "PCA Component 1"
+            default_y_label = "PCA Component 2"
 
-                method_text = "PCA 차원축소 후 클러스터링"
-                graph_title = "K-means Clustering (PCA Reduction)"
-                x_label, y_label = "PCA Component 1", "PCA Component 2"
-
-            else:
-                cluster_data = scaled_features
-
-                if scaled_features.shape[1] > 2:
-                    pca = PCA(n_components=2)
-                    plot_data = pca.fit_transform(scaled_features)
-                    x_label, y_label = "PCA Component 1 (Vis)", "PCA Component 2 (Vis)"
-                else:
-                    plot_data = scaled_features
-                    x_label, y_label = df_numeric.columns[0], df_numeric.columns[1]
-
-                method_text = "표준화된 전체 데이터 클러스터링"
-                graph_title = "K-means Clustering (Standardized Data)"
+            method_text = "PCA 차원축소 기반 클러스터링 (기본 적용)"
+            graph_title = "K-means Clustering (PCA Reduction)"
 
             kmeans = KMeans(n_clusters=k_value, random_state=42)
             clusters = kmeans.fit_predict(cluster_data)
 
+            unique_labels, counts = np.unique(clusters, return_counts=True)
+            cluster_counts = list(zip(unique_labels, counts))
+
+            if x_col and y_col and x_col in df.columns and y_col in df.columns:
+                data_x = df[x_col]
+                data_y = df[y_col]
+                
+                x_label = x_col
+                y_label = y_col
+                graph_title += f"\n(View: {x_col} vs {y_col})"
+
+                def prepare_plot_data(series):
+                    if pd.api.types.is_numeric_dtype(series):
+                        return series.values
+                    try:
+                        dt_series = pd.to_datetime(series)
+                        return dt_series
+                    except:
+                        pass
+                    return series.astype('category').cat.codes.values
+
+                plot_x = prepare_plot_data(data_x)
+                plot_y = prepare_plot_data(data_y)
+
+            else:
+                plot_x = default_plot_x
+                plot_y = default_plot_y
+                x_label = default_x_label
+                y_label = default_y_label
+
             plt.figure(figsize=(10, 6))
-            scatter = plt.scatter(plot_data[:, 0], plot_data[:, 1], c=clusters,
+            scatter = plt.scatter(plot_x, plot_y, c=clusters,
                                   cmap='viridis', s=50, alpha=0.8)
 
             plt.title(f'{graph_title} (K={k_value})', fontsize=14)
             plt.xlabel(x_label, fontsize=11)
             plt.ylabel(y_label, fontsize=11)
-            plt.colorbar(scatter, label='Cluster ID')
+
+            handles, _ = scatter.legend_elements(prop="colors")
+            legend_labels = [f"Cluster {l} (n={c})" for l, c in zip(unique_labels, counts)]
+            
+            plt.legend(handles, legend_labels, title="Cluster Stats", 
+                       loc="upper right", bbox_to_anchor=(1.25, 1))
+
+            plt.gcf().autofmt_xdate()
             plt.grid(True, linestyle='--', alpha=0.5)
 
             img = io.BytesIO()
@@ -153,7 +177,8 @@ def index():
             error_msg = f"Error: {str(e)}"
 
     return render_template('index.html', plot_url=plot_url, error_msg=error_msg,
-                           method_text=method_text, k_value=k_value)
+                           method_text=method_text, k_value=k_value,
+                           cluster_counts=cluster_counts)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
